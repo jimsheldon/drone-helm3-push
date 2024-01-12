@@ -1,0 +1,15 @@
+#service:
+#  type: LoadBalancer
+#  loadBalancerIP: "34.148.171.160"
+#  port: 80
+
+#extraSecretNamesForEnvFrom:
+#  - drone-rpc-secret
+#  - drone-github-client-secret
+
+env:
+  DRONE_SERVER_HOST: 3d77-24-233-100-250.ngrok.io
+  DRONE_SERVER_PROTO: https
+  DRONE_GITHUB_CLIENT_ID: 2ad15d79506862775f2c
+  DRONE_GITHUB_CLIENT_SECRET: f1a8e44b9155c76b37bf596ebb33b50b8f4f7797
+  DRONE_RPC_SECRET: 6af191e23afa23595851b22f5f815d0f
