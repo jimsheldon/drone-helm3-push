@@ -1,3 +1,5 @@
+drone-helm3-push
+
 .packaged_charts/
 
 .env
