@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -22,6 +21,7 @@ type Args struct {
 	Pipeline
 
 	// Level defines the plugin log level.
+	// TODO: implement log level
 	Level string `envconfig:"PLUGIN_LOG_LEVEL"`
 
 	ChartPath         string `envconfig:"PLUGIN_CHART_PATH"`
@@ -30,16 +30,6 @@ type Args struct {
 	RegistryPassword  string `envconfig:"PLUGIN_REGISTRY_PASSWORD"`
 	RegistryURL       string `envconfig:"PLUGIN_REGISTRY_URL"`
 	RegistryUsername  string `envconfig:"PLUGIN_REGISTRY_USERNAME"`
-}
-
-type registryLoginOptions struct {
-	username             string
-	password             string
-	passwordFromStdinOpt bool
-	certFile             string
-	keyFile              string
-	caFile               string
-	insecure             bool
 }
 
 var errConfiguration = errors.New("configuration error")
@@ -56,14 +46,20 @@ func Exec(ctx context.Context, args Args) error {
 		return err
 	}
 
-	// push the chart
-	err = pushChart(&args, packageRun)
+	opts := []registry.ClientOption{
+		registry.ClientOptWriter(os.Stdout),
+	}
+	// login to the registry
+	err = registryLogin(&args, opts)
 	if err != nil {
 		return err
 	}
 
 	// push the chart
-	//client.Push()
+	err = pushChart(&args, opts, packageRun)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -108,50 +104,54 @@ func packageChart(args *Args) (string, error) {
 
 	// minimal downloadManager settings which supports charts in the filesystem
 	downloadManager := &downloader.Manager{
-		Out:       io.Discard,
+		Out:       os.Stdout,
 		ChartPath: args.ChartPath,
 		Debug:     true,
 	}
 	if err := downloadManager.Build(); err != nil {
-		return args.ChartPath, fmt.Errorf("Failed to retrieve chart in %s (%s)\n", args.ChartPath, err.Error())
+		return "", fmt.Errorf("Failed to retrieve chart in %s (%s)\n", args.ChartPath, err.Error())
 	}
 
 	packageRun, err := helmClient.Run(args.ChartPath, nil)
 	if err != nil {
-		return args.ChartPath, fmt.Errorf("Failed to package chart in %s (%s)\n", args.ChartPath, err.Error())
+		return "", fmt.Errorf("Failed to package chart in %s (%s)\n", args.ChartPath, err.Error())
 	}
 	fmt.Printf("Successfully packaged chart in %s and saved it to %s\n", args.ChartPath, packageRun)
 
 	return packageRun, nil
 }
 
-// pushChart pushes a Helm chart to a registry
-func pushChart(args *Args, packageRun string) error {
-	o := &registryLoginOptions{}
-
-	opts := []registry.ClientOption{
-		registry.ClientOptDebug(false),
-		registry.ClientOptEnableCache(true),
-		registry.ClientOptWriter(os.Stderr),
-	}
-	cfg := new(action.Configuration)
+// registryLogin logs into a registry
+func registryLogin(args *Args, opts []registry.ClientOption) error {
 	registryClient, err := registry.NewClient(opts...)
 	if err != nil {
-		return fmt.Errorf("Failed to create client (%s)\n", err)
+		return fmt.Errorf("Failed to create registry client (%s)", err.Error())
 	}
+
+	cfg := new(action.Configuration)
 	cfg.RegistryClient = registryClient
 
-	action.NewRegistryLogin(cfg).Run(os.Stdout, args.RegistryURL, args.RegistryUsername, args.RegistryPassword,
-		action.WithCertFile(o.certFile),
-		action.WithKeyFile(o.keyFile),
-		action.WithCAFile(o.caFile),
-		action.WithInsecure(o.insecure))
+	action.NewRegistryLogin(cfg).Run(
+		os.Stdout,
+		args.RegistryURL,
+		args.RegistryUsername,
+		args.RegistryPassword,
+	)
 
-	client := action.NewPushWithOpts(action.WithPushConfig(cfg),
-		action.WithTLSClientConfig(o.certFile, o.keyFile, o.caFile),
-		action.WithInsecureSkipTLSVerify(false),
-		action.WithPlainHTTP(false),
-		action.WithPushOptWriter(nil))
+	return nil
+}
+
+// pushChart pushes a Helm chart to a registry
+func pushChart(args *Args, opts []registry.ClientOption, packageRun string) error {
+	registryClient, err := registry.NewClient(opts...)
+	if err != nil {
+		return fmt.Errorf("Failed to create registry client (%s)", err.Error())
+	}
+
+	cfg := new(action.Configuration)
+	cfg.RegistryClient = registryClient
+
+	client := action.NewPushWithOpts(action.WithPushConfig(cfg))
 
 	settings := new(cli.EnvSettings)
 	client.Settings = settings
