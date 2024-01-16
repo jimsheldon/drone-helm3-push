@@ -1,52 +1,30 @@
-A plugin to Drone Helm push plugin.
+A plugin to Drone Helm push plugin to an OCI Docker registry.
 
 # Usage
 
 The following settings changes this plugin's behavior.
 
-* param1 (optional) does something.
-* param2 (optional) does something different.
+* `chart_destination` temporary directory where chart archive is written (default `.packaged_charts`)
+* `chart_path` directory containing the helm chart (default `.`)
+* `registry_namespace` registry namespace under which the chart will be published
+* `registry_password` registry password/token
+* `registry_url` registry where the packaged chart will be published (default `registry.hub.docker.com`)
+* `registry_username` registry username
 
-Below is an example `.drone.yml` that uses this plugin.
+Below is an example Harness CI pipeline step that uses this plugin.
 
 ```yaml
-kind: pipeline
-name: default
-
-steps:
-- name: run jimsheldon/drone-helm3-push plugin
-  image: jimsheldon/drone-helm3-push
-  pull: if-not-exists
-  settings:
-    param1: foo
-    param2: bar
-```
-
-# Building
-
-Build the plugin binary:
-
-```text
-scripts/build.sh
-```
-
-Build the plugin image:
-
-```text
-docker build -t jimsheldon/drone-helm3-push -f docker/Dockerfile .
-```
-
-# Testing
-
-Execute the plugin from your current working directory:
-
-```text
-docker run --rm -e PLUGIN_PARAM1=foo -e PLUGIN_PARAM2=bar \
-  -e DRONE_COMMIT_SHA=8f51ad7884c5eb69c11d260a31da7a745e6b78e2 \
-  -e DRONE_COMMIT_BRANCH=master \
-  -e DRONE_BUILD_NUMBER=43 \
-  -e DRONE_BUILD_STATUS=success \
-  -w /drone/src \
-  -v $(pwd):/drone/src \
-  jimsheldon/drone-helm3-push
+             - step:
+                  type: Plugin
+                  name: push helm chart
+                  identifier: push_helm_chart
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: jimsheldon/drone-helm3-push
+                    settings:
+                      chart_path: charts/drone
+                      registry_url: registry.hub.docker.com
+                      registry_username: jimsheldon
+                      registry_password: <+secrets.getValue("docker_pat")>
+                      registry_namespace: jimsheldon
 ```

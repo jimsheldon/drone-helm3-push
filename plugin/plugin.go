@@ -85,7 +85,7 @@ func verifyArgs(args *Args) error {
 
 	if args.ChartDestination == "" {
 		// default path to write packages
-		args.ChartDestination = ".packaged_charts"
+		args.ChartDestination = "./.packaged_charts"
 	}
 
 	if args.RegistryURL == "" {
