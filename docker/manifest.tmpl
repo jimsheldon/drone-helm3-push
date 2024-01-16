@@ -18,7 +18,7 @@ manifests:
       architecture: arm64
       os: linux
   - 
-    image: plugins/drone-helm3-push:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-ltsc2022-amd64
+    image: jimsheldon/drone-helm3-push:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-ltsc2022-amd64
     platform:
       architecture: amd64
       os: windows
