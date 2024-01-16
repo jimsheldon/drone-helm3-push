@@ -60,6 +60,10 @@ steps:
       from_secret: docker_password
     auto_tag: true
     auto_tag_suffix: linux-amd64
+  when:
+    ref:
+    - refs/heads/main
+    - refs/tags/**
 depends_on:
 - testing
 trigger:
@@ -104,6 +108,10 @@ steps:
       from_secret: docker_password
     auto_tag: true
     auto_tag_suffix: linux-arm64
+  when:
+    ref:
+    - refs/heads/main
+    - refs/tags/**
 depends_on:
 - testing
 trigger:
