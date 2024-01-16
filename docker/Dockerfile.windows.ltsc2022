@@ -6,5 +6,5 @@ LABEL maintainer="Jim Sheldon <jim.sheldon@harness.io>" `
   org.label-schema.vendor="Drone.IO Community" `
   org.label-schema.schema-version="1.0"
 
-ADD release/windows/amd64/plugin.exe C:/bin/drone-helm3-push.exe
+ADD release/windows/amd64/drone-helm3-push.exe C:/bin/drone-helm3-push.exe
 ENTRYPOINT [ "C:\\bin\\drone-helm3-push.exe" ]
