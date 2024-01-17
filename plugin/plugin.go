@@ -90,7 +90,7 @@ func verifyArgs(args *Args) error {
 
 	if args.RegistryURL == "" {
 		// default to Docker Hub
-		args.RegistryURL = "registry.hub.docker.com"
+		args.RegistryURL = "registry-1.docker.io"
 	}
 
 	return nil

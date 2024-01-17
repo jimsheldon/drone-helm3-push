@@ -8,7 +8,7 @@ The following settings changes this plugin's behavior.
 * `chart_path` directory containing the helm chart (default `.`)
 * `registry_namespace` registry namespace under which the chart will be published
 * `registry_password` registry password/token
-* `registry_url` registry where the packaged chart will be published (default `registry.hub.docker.com`)
+* `registry_url` registry where the packaged chart will be published (default `registry-1.docker.io`)
 * `registry_username` registry username
 
 Below is an example Harness CI pipeline step that uses this plugin.
