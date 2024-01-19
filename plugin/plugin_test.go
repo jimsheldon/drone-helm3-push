@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	testChartDir = "testdata/charts/"
-
 	testRegistryNamespace = "example"
 	testRegistryPassword  = "correct-horse-battery-staple"
 	testRegistryUsername  = "kevinbacon"
