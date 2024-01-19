@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
+	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/registry"
 )
 
@@ -27,8 +28,9 @@ type Args struct {
 	ChartPath         string `envconfig:"PLUGIN_CHART_PATH"`
 	ChartDestination  string `envconfig:"PLUGIN_CHART_DESTINATION"`
 	RegistryNamespace string `envconfig:"PLUGIN_REGISTRY_NAMESPACE"`
+	RegistryProject   string `envconfig:"PLUGIN_REGISTRY_PROJECT"`
 	RegistryPassword  string `envconfig:"PLUGIN_REGISTRY_PASSWORD"`
-	RegistryURL       string `envconfig:"PLUGIN_REGISTRY_URL"`
+	RegistryHostname  string `envconfig:"PLUGIN_REGISTRY_HOSTNAME"`
 	RegistryUsername  string `envconfig:"PLUGIN_REGISTRY_USERNAME"`
 }
 
@@ -88,9 +90,9 @@ func verifyArgs(args *Args) error {
 		args.ChartDestination = "./.packaged_charts"
 	}
 
-	if args.RegistryURL == "" {
+	if args.RegistryHostname == "" {
 		// default to Docker Hub
-		args.RegistryURL = "registry-1.docker.io"
+		args.RegistryHostname = "registry-1.docker.io"
 	}
 
 	return nil
@@ -102,12 +104,21 @@ func packageChart(args *Args) (string, error) {
 	helmClient.DependencyUpdate = true
 	helmClient.Destination = args.ChartDestination
 
+	settings := cli.New()
+	getters := getter.All(settings)
+	registryClient, err := registry.NewClient()
+
 	// minimal downloadManager settings which supports charts in the filesystem
 	downloadManager := &downloader.Manager{
-		Out:       os.Stdout,
-		ChartPath: args.ChartPath,
-		Debug:     true,
+		Out:              os.Stdout,
+		ChartPath:        args.ChartPath,
+		Debug:            settings.Debug,
+		Getters:          getters,
+		RepositoryConfig: settings.RepositoryConfig,
+		RepositoryCache:  settings.RepositoryCache,
+		RegistryClient:   registryClient,
 	}
+
 	if err := downloadManager.Build(); err != nil {
 		return "", fmt.Errorf("Failed to retrieve chart in %s (%s)\n", args.ChartPath, err.Error())
 	}
@@ -133,7 +144,7 @@ func registryLogin(args *Args, opts []registry.ClientOption) error {
 
 	action.NewRegistryLogin(cfg).Run(
 		os.Stdout,
-		args.RegistryURL,
+		args.RegistryHostname,
 		args.RegistryUsername,
 		args.RegistryPassword,
 	)
@@ -155,14 +166,21 @@ func pushChart(args *Args, opts []registry.ClientOption, packageRun string) erro
 
 	settings := new(cli.EnvSettings)
 	client.Settings = settings
-	ociURL := "oci://" + args.RegistryURL + "/" + args.RegistryNamespace
+
+	var remoteURL string
+	// some registries like GAR have an extra project level
+	if args.RegistryProject != "" {
+		remoteURL = "oci://" + args.RegistryHostname + "/" + args.RegistryProject + "/" + args.RegistryNamespace
+	} else {
+		remoteURL = "oci://" + args.RegistryHostname + "/" + args.RegistryNamespace
+	}
 
 	// discard returned string since it appears to be empty
-	_, err = client.Run(packageRun, ociURL)
+	_, err = client.Run(packageRun, remoteURL)
 	if err != nil {
-		return fmt.Errorf("Failed to push chart %s to %s (%s)\n", packageRun, ociURL, err.Error())
+		return fmt.Errorf("Failed to push chart %s to %s (%s)\n", packageRun, remoteURL, err.Error())
 	}
-	fmt.Printf("Successfully pushed chart %s to %s\n", packageRun, ociURL)
+	fmt.Printf("Successfully pushed chart %s to %s\n", packageRun, remoteURL)
 
 	return nil
 }
