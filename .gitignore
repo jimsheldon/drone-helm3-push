@@ -1,7 +1,5 @@
 drone-helm3-push
 
-plugin/testdata/output/
-
 .packaged_charts/
 
 .env
