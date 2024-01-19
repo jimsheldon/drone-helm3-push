@@ -23,7 +23,7 @@ Below is an example Harness CI pipeline step that uses this plugin.
                     image: jimsheldon/drone-helm3-push
                     settings:
                       chart_path: charts/drone
-                      registry_url: registry.hub.docker.com
+                      registry_url: oci://registry-1.docker.io
                       registry_username: jimsheldon
                       registry_password: <+secrets.getValue("docker_pat")>
                       registry_namespace: jimsheldon
